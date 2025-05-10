@@ -51,7 +51,10 @@ final class ApiLoginController extends AbstractController
                     type: 'string',
                     example: 'username@mail.com'
                 ),
-                new OA\Property(property: 'token', type: 'string'),
+                new OA\Property(
+                    property: 'token',
+                    type: 'string'
+                ),
             ]
         )
     )]
@@ -107,7 +110,7 @@ final class ApiLoginController extends AbstractController
             if (count($errors) > 0) {
                 $errorsString = "";
                 foreach ($errors as $error) {
-                    $errorsString = $error->getPropertyPath() . ": " . $error->getMessage() . "; ";
+                    $errorsString = $error->getPropertyPath() . ": " . $error->getMessage() . ";";
                 }
                 return new JsonResponse([
                     'error' => $errorsString
@@ -165,7 +168,10 @@ final class ApiLoginController extends AbstractController
                     type: 'string',
                     example: 'username@mail.com'
                 ),
-                new OA\Property(property: 'token', type: 'string'),
+                new OA\Property(
+                    property: 'token',
+                    type: 'string'
+                ),
             ]
         )
     )]
@@ -206,12 +212,12 @@ final class ApiLoginController extends AbstractController
 
             $errors = $this->validator->validate($userDto);
             if (count($errors) > 0) {
-                $formattedErrors = [];
+                $errorsString = "";
                 foreach ($errors as $error) {
-                    $formattedErrors[$error->getPropertyPath()] = $error->getMessage();
+                    $errorsString = $error->getPropertyPath() . ": " . $error->getMessage() . ";";
                 }
                 return new JsonResponse([
-                    'error' => $formattedErrors
+                    'error' => $errorsString
                 ], Response::HTTP_BAD_REQUEST);
             }
             

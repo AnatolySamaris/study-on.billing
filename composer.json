@@ -22,7 +22,6 @@
         "symfony/flex": "^2",
         "symfony/framework-bundle": "7.2.*",
         "symfony/maker-bundle": "^1.62",
-        "symfony/phpunit-bridge": "^7.2",
         "symfony/property-access": "7.2.*",
         "symfony/property-info": "7.2.*",
         "symfony/runtime": "7.2.*",
@@ -85,6 +84,12 @@
         }
     },
     "require-dev": {
-        "squizlabs/php_codesniffer": "^3.12"
+        "dama/doctrine-test-bundle": "^8.2",
+        "phpunit/phpunit": "^9.5",
+        "squizlabs/php_codesniffer": "^3.12",
+        "symfony/browser-kit": "7.2.*",
+        "symfony/dom-crawler": "7.2.*",
+        "symfony/panther": "^2.2",
+        "symfony/phpunit-bridge": "^7.2"
     }
 }

@@ -21,5 +21,7 @@ migrate:
 fixtload:
 	@${CONSOLE} doctrine:fixtures:load
 
+phpunit:
+	@${PHP} bin/phpunit
 
 -include local.mk

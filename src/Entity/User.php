@@ -112,19 +112,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         // $this->plainPassword = null;
     }
 
-    public static function fromDto(
-        UserDto $userDto,
-        UserPasswordHasherInterface $passwordHasher
-    ): self {
-        $user = new self();
-        $user->setEmail($userDto->email);
-        $user->setPassword(
-            $passwordHasher->hashPassword($user, $userDto->password)
-        );
-        $user->setRoles(['ROLE_USER']);
-        return $user;
-    }
-
     public function getBalance(): ?float
     {
         return $this->balance;
@@ -135,5 +122,19 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->balance = $balance;
 
         return $this;
+    }
+
+    public static function fromDto(
+        UserDto $userDto,
+        UserPasswordHasherInterface $passwordHasher
+    ): self {
+        $user = new self();
+        $user->setEmail($userDto->email);
+        $user->setPassword(
+            $passwordHasher->hashPassword($user, $userDto->password)
+        );
+        $user->setBalance(0.00);
+        $user->setRoles(['ROLE_USER']);
+        return $user;
     }
 }
