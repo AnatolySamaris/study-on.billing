@@ -5,19 +5,20 @@ namespace App\Controller;
 use App\Dto\UserDto;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
-use JsonException;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
-use Symfony\Component\PasswordHasher\PasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use OpenApi\Attributes as OA;
+use Nelmio\ApiDocBundle\Attribute\Model;
 
 #[Route('/api', name: 'app_api_')]
+#[OA\Tag(name: 'Registration & Authentication')]
 final class ApiLoginController extends AbstractController
 {
     public function __construct(
@@ -30,6 +31,69 @@ final class ApiLoginController extends AbstractController
     }
 
     #[Route('/v1/auth', name: 'auth', methods: ['POST'])]
+    #[OA\Post(
+        path: '/api/v1/auth',
+        summary: 'Authenticate user',
+        description: 'Takes user email and password to authenticate them. Returns JWT token if successful.',
+        requestBody: new OA\RequestBody(
+            required: true,
+            description: 'Authentication credentials',
+            content: new OA\JsonContent(ref: new Model(type: UserDto::class))
+        )
+    )]
+    #[OA\Response(
+        response: 200,
+        description: 'Authentication successful',
+        content: new OA\JsonContent(
+            properties: [
+                new OA\Property(
+                    property: 'user',
+                    type: 'string',
+                    example: 'username@mail.com'
+                ),
+                new OA\Property(property: 'token', type: 'string'),
+            ]
+        )
+    )]
+    #[OA\Response(
+        response: 400,
+        description: 'Invalid credentials',
+        content: new OA\JsonContent(
+            properties: [
+                new OA\Property(
+                    property: 'error',
+                    type: 'string',
+                    example: 'Invalid credentials'
+                )
+            ]
+        )
+    )]
+    #[OA\Response(
+        response: 401,
+        description: 'Invalid password',
+        content: new OA\JsonContent(
+            properties: [
+                new OA\Property(
+                    property: 'error',
+                    type: 'string',
+                    example: 'Invalid password'
+                ),
+            ]
+        )
+    )]
+    #[OA\Response(
+        response: 500,
+        description: "Internal server error",
+        content: new OA\JsonContent(
+            properties: [
+                new OA\Property(
+                    property: "error",
+                    type: "string",
+                    example: "Error message"
+                ),
+            ]
+        )
+    )]
     public function auth(Request $request): JsonResponse
     {
         try {
@@ -41,12 +105,12 @@ final class ApiLoginController extends AbstractController
 
             $errors = $this->validator->validate($userDto);
             if (count($errors) > 0) {
-                $formattedErrors = [];
+                $errorsString = "";
                 foreach ($errors as $error) {
-                    $formattedErrors[$error->getPropertyPath()] = $error->getMessage();
+                    $errorsString = $error->getPropertyPath() . ": " . $error->getMessage() . "; ";
                 }
                 return new JsonResponse([
-                    'error' => $formattedErrors
+                    'error' => $errorsString
                 ], Response::HTTP_BAD_REQUEST);
             }
             
@@ -63,7 +127,7 @@ final class ApiLoginController extends AbstractController
 
             if (!$this->passwordHasher->isPasswordValid($user, $userDto->password)) {
                 return new JsonResponse([
-                    'error' => 'Invalid credentials'
+                    'error' => 'Invalid password'
                 ], Response::HTTP_UNAUTHORIZED);
             }
             
@@ -81,6 +145,56 @@ final class ApiLoginController extends AbstractController
     }
 
     #[Route('/v1/register', name: 'register', methods: ['POST'])]
+    #[OA\Post(
+        path: '/api/v1/register',
+        summary: 'Register user',
+        description: 'Takes user email and password to register them. Returns JWT token if successful.',
+        requestBody: new OA\RequestBody(
+            required: true,
+            description: 'User registration data',
+            content: new OA\JsonContent(ref: new Model(type: UserDto::class))
+        )
+    )]
+    #[OA\Response(
+        response: 201,
+        description: 'Registration successful',
+        content: new OA\JsonContent(
+            properties: [
+                new OA\Property(
+                    property: 'user',
+                    type: 'string',
+                    example: 'username@mail.com'
+                ),
+                new OA\Property(property: 'token', type: 'string'),
+            ]
+        )
+    )]
+    #[OA\Response(
+        response: 400,
+        description: 'Invalid credentials',
+        content: new OA\JsonContent(
+            properties: [
+                new OA\Property(
+                    property: 'error',
+                    type: 'string',
+                    example: 'Invalid credentials'
+                )
+            ]
+        )
+    )]
+    #[OA\Response(
+        response: 500,
+        description: "Internal server error",
+        content: new OA\JsonContent(
+            properties: [
+                new OA\Property(
+                    property: "error",
+                    type: "string",
+                    example: "Error message"
+                ),
+            ]
+        )
+    )]
     public function register(Request $request): JsonResponse
     {
         try {
