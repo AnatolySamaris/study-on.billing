@@ -5,6 +5,8 @@ namespace App\Controller;
 use App\Dto\UserDto;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
+use Gesdinet\JWTRefreshTokenBundle\Generator\RefreshTokenGeneratorInterface;
+use Gesdinet\JWTRefreshTokenBundle\Model\RefreshTokenManagerInterface;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -26,7 +28,9 @@ final class ApiLoginController extends AbstractController
         private ValidatorInterface $validator,
         private EntityManagerInterface $entityManager,
         private UserPasswordHasherInterface $passwordHasher,
-        private JWTTokenManagerInterface $jwtManager
+        private JWTTokenManagerInterface $jwtManager,
+        private RefreshTokenGeneratorInterface $refreshTokenGenerator,
+        private RefreshTokenManagerInterface $refreshTokenManager
     ) {
     }
 
@@ -53,6 +57,10 @@ final class ApiLoginController extends AbstractController
                 ),
                 new OA\Property(
                     property: 'token',
+                    type: 'string'
+                ),
+                new OA\Property(
+                    property: 'refreshToken',
                     type: 'string'
                 ),
             ]
@@ -136,9 +144,16 @@ final class ApiLoginController extends AbstractController
             
             $token = $this->jwtManager->create($user);
 
+            $refreshToken = $this->refreshTokenGenerator->createForUserWithTtl(
+                $user,
+                (new \DateTime())->modify('+1 month')->getTimestamp()
+            );
+            $this->refreshTokenManager->save($refreshToken);
+
             return new JsonResponse([
                 'user' => $user->getUserIdentifier(),
-                'token' => $token
+                'token' => $token,
+                'refresh_token' => $refreshToken->getRefreshToken()
             ], Response::HTTP_OK);
         } catch (\Exception $e) {
             return new JsonResponse([
@@ -170,6 +185,10 @@ final class ApiLoginController extends AbstractController
                 ),
                 new OA\Property(
                     property: 'token',
+                    type: 'string'
+                ),
+                new OA\Property(
+                    property: 'refreshToken',
                     type: 'string'
                 ),
             ]
@@ -237,9 +256,16 @@ final class ApiLoginController extends AbstractController
 
             $token = $this->jwtManager->create($user);
 
+            $refreshToken = $this->refreshTokenGenerator->createForUserWithTtl(
+                $user,
+                (new \DateTime())->modify('+1 month')->getTimestamp()
+            );
+            $this->refreshTokenManager->save($refreshToken);
+
             return new JsonResponse([
                 'user' => $user->getUserIdentifier(),
-                'token' => $token
+                'token' => $token,
+                'refresh_token' => $refreshToken->getRefreshToken()
             ], Response::HTTP_CREATED);
         } catch (\Exception $e) {
             return new JsonResponse([
