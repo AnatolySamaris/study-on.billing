@@ -3,13 +3,18 @@
 namespace App\Controller;
 
 use App\Entity\Course;
+use App\Entity\User;
 use App\Enum\CourseType;
+use App\Exception\NotEnoughBalanceException;
 use App\Repository\CourseRepository;
+use App\Service\PaymentService;
 use Doctrine\ORM\EntityManagerInterface;
+use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use OpenApi\Attributes as OA;
 
@@ -229,8 +234,21 @@ final class CourseController extends AbstractController
         )
     )]
     #[OA\Response(
+        response: 401,
+        description: "Missing or invalid JWT token",
+        content: new OA\JsonContent(
+            properties: [
+                new OA\Property(
+                    property: "error",
+                    type: "string",
+                    example: "Missing JWT token"
+                ),
+            ]
+        )
+    )]
+    #[OA\Response(
         response: 404,
-        description: "Course not found",
+        description: "Course or user not found",
         content: new OA\JsonContent(
             properties: [
                 new OA\Property(
@@ -267,9 +285,36 @@ final class CourseController extends AbstractController
             ]
         )
     )]
-    public function pay(string $code): JsonResponse
-    {
+    public function pay(
+        string $code,
+        PaymentService $paymentService,
+        TokenStorageInterface $tokenStorage,
+        JWTTokenManagerInterface $jwtManager
+    ): JsonResponse {
         try {
+            $token = $tokenStorage->getToken();
+
+            if (!$token) {
+                return new JsonResponse([
+                    'error' => 'Missing JWT token'
+                ], Response::HTTP_UNAUTHORIZED);
+            }
+
+            $decodedJwtToken = $jwtManager->decode($token);
+
+            $user = $this->entityManager
+                ->getRepository(User::class)
+                ->findOneBy([
+                    'email' => $decodedJwtToken['username']
+                ])
+            ;
+
+            if (!$user) {
+                return new JsonResponse([
+                    'error' => 'User not found'
+                ], Response::HTTP_NOT_FOUND);
+            }
+
             $course = $this->courseRepository->findByCode($code);
 
             if (!$course) {
@@ -291,18 +336,17 @@ final class CourseController extends AbstractController
                     'course_type' => $course->getType()->getLabel(),
                 ];
 
-                // ...
+                $transaction = $paymentService->payment($user, $course);
 
-                // if ($course->getType() == CourseType::RENT) {
-                //     $response['expired_at'] = $transaction->getExpiredAt()
-                // }
-
+                if ($course->getType() == CourseType::RENT) {
+                    $response['expired_at'] = $transaction->getExpiredAt()->format(\DateTimeInterface::ATOM);
+                }
 
                 return new JsonResponse(
                     $response,
                     Response::HTTP_CREATED
                 );
-            } catch (\Exception $e) {
+            } catch (NotEnoughBalanceException) {
                 return new JsonResponse([
                     'error' => 'Not enough money for this operation'
                 ], Response::HTTP_NOT_ACCEPTABLE);

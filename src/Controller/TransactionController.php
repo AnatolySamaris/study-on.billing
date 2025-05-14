@@ -181,15 +181,15 @@ final class TransactionController extends AbstractController
             foreach ($filteredTransactions as $transaction) {
                 $item = [
                     'id' => $transaction->getId(),
-                    'created_at' => $transaction->getDate(),
-                    'type' => $transaction->getType(),
+                    'created_at' => $transaction->getDate()->format(\DateTimeInterface::ATOM),
+                    'type' => $transaction->getType()->getLabel(),
                     'amount' => $transaction->getValue()
                 ];
-                if ($transaction->getType() == 'payment') {
+                if ($transaction->getType() == TransactionType::PAYMENT) {
                     $item['course_code'] = $transaction->getCourse()->getCode();
                 }
                 if ($transaction->getExpiredAt() != null) {
-                    $item['expires_at'] = $transaction->getExpiredAt();
+                    $item['expires_at'] = $transaction->getExpiredAt()->format(\DateTimeInterface::ATOM);
                 }
                 $response[] = $item;
             }

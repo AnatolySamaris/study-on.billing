@@ -34,7 +34,7 @@ class PaymentService
         $transaction->setValue($course->getPrice());
         $transaction->setBillingUser($user);
 
-        if ($course->getType() == CourseType::RENT->getValue()) {
+        if ($course->getType() == CourseType::RENT) {
             $transaction->setExpiredAt(
                 $transactionTime->modify('+1 week') // Аренда на неделю
             );
