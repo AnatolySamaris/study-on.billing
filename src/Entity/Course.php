@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use App\Enum\CourseType;
 use App\Repository\CourseRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -61,14 +62,14 @@ class Course
         return $this;
     }
 
-    public function getType(): ?int
+    public function getType(): CourseType
     {
-        return $this->type;
+        return CourseType::from($this->type);
     }
 
-    public function setType(int $type): static
+    public function setType(CourseType $type): static
     {
-        $this->type = $type;
+        $this->type = $type->getValue();
 
         return $this;
     }

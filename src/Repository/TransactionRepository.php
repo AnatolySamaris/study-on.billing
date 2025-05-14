@@ -19,23 +19,15 @@ class TransactionRepository extends ServiceEntityRepository
         parent::__construct($registry, Transaction::class);
     }
 
-    public function getUserFilteredTransactions(
+    public function getFilteredTransactions(
         string $username,
         int $type = null,
         string $courseCode = null,
         bool $skipExpired = false
     ) {
         $request = $this->createQueryBuilder('t')
-            ->select(
-                't.id',
-                't.date AS created_at',
-                't.expired_at AS expires_at',
-                't.type',
-                'c.character_code AS course_code',
-                't.value as amount'
-            )
             ->leftJoin('t.course', 'c')
-            ->innerJoin('t.billing_user', 'u', Join::WITH, 'u.email = :username')
+            ->innerJoin('t.billingUser', 'u', Join::WITH, 'u.email = :username')
             ->setParameter('username', $username);
 
         if ($type) {
@@ -43,20 +35,20 @@ class TransactionRepository extends ServiceEntityRepository
                 ->setParameter('transactionType', $type, Types::SMALLINT);
         }
         if ($courseCode) {
-            $request->andWhere('c.character_code = :code')
+            $request->andWhere('c.code = :code')
                 ->setParameter('code', $courseCode);
         }
         if ($skipExpired) {
             return $request
-                ->andWhere('t.expired_at > :now OR t.expired_at is null')
+                ->andWhere('t.expiredAt > :now OR t.expiredAt is null')
                 ->setParameter('now', new DateTime(), Types::DATETIME_MUTABLE)
                 ->getQuery()
-                ->getArrayResult();
+                ->getResult();
         }
 
         return $request
             ->getQuery()
-            ->getArrayResult();
+            ->getResult();
     }
 
 //    /**

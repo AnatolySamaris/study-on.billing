@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use App\Enum\TransactionType;
 use App\Repository\TransactionRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
@@ -38,14 +39,14 @@ class Transaction
         return $this->id;
     }
 
-    public function getType(): ?int
+    public function getType(): TransactionType
     {
-        return $this->type;
+        return TransactionType::from($this->type);
     }
 
-    public function setType(int $type): static
+    public function setType(TransactionType $type): static
     {
-        $this->type = $type;
+        $this->type = $type->getValue();
 
         return $this;
     }

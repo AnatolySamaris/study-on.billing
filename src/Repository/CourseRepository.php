@@ -19,7 +19,7 @@ class CourseRepository extends ServiceEntityRepository
     public function findByCode(string $code): Course|null
     {
         return $this->createQueryBuilder('c')
-            ->andWhere('c.character_code = :code')
+            ->andWhere('c.code = :code')
             ->setParameter('code', $code)
             ->getQuery()
             ->getOneOrNullResult();

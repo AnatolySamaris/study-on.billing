@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\Course;
+use App\Enum\CourseType;
 use App\Repository\CourseRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -80,9 +81,9 @@ final class CourseController extends AbstractController
             foreach ($courses as $course) {
                 $item = [
                     "code" => $course->getCode(),
-                    "type" => $course->getType(),
+                    "type" => $course->getType()->getLabel(),
                 ];
-                if ($course->getType() != 'free') {
+                if ($course->getType() != CourseType::FREE) {
                     $item["price"] = $course->getPrice();
                 }
                 $response[] = $item;
@@ -160,10 +161,10 @@ final class CourseController extends AbstractController
 
             $response = [
                 'code' => $course->getCode(),
-                'type' => $course->getType()
+                'type' => $course->getType()->getLabel()
             ];
 
-            if ($course->getType() != 'free') {
+            if ($course->getType() != CourseType::FREE) {
                 $response["price"] = $course->getPrice();
             }
 
@@ -277,22 +278,22 @@ final class CourseController extends AbstractController
                 ], Response::HTTP_NOT_FOUND);
             }
 
-            if ($course->getType() == 'free') {
+            if ($course->getType() == CourseType::FREE) {
                 return new JsonResponse([
                     'success' => true,
-                    'course_type' => $course->getType(),
+                    'course_type' => $course->getType()->getLabel(),
                 ], Response::HTTP_CREATED);
             }
 
             try {
                 $response = [
                     'success' => true,
-                    'course_type' => $course->getType(),
+                    'course_type' => $course->getType()->getLabel(),
                 ];
 
                 // ...
 
-                // if ($course->getType() == 'rent') {
+                // if ($course->getType() == CourseType::RENT) {
                 //     $response['expired_at'] = $transaction->getExpiredAt()
                 // }
 

@@ -2,7 +2,10 @@
 
 namespace App\DataFixtures;
 
+use App\Entity\Course;
 use App\Entity\User;
+use App\Enum\CourseType;
+use App\Service\PaymentService;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Persistence\ObjectManager;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
@@ -10,19 +13,21 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 class AppFixtures extends Fixture
 {
     public function __construct(
-        private UserPasswordHasherInterface $passwordHasher
+        private UserPasswordHasherInterface $passwordHasher,
+        private PaymentService $paymentService
     ) {
     }
 
     public function load(ObjectManager $manager): void
     {
+        // Создание юзеров
         $user = new User();
         $user->setRoles(['ROLE_USER']);
         $user->setEmail('user@mail.ru');
         $user->setPassword(
             $this->passwordHasher->hashPassword($user, 'password')
         );
-        $user->setBalance(1250.99);
+        $user->setBalance(0.00);
         $manager->persist($user);
 
         $admin = new User();
@@ -31,9 +36,50 @@ class AppFixtures extends Fixture
         $admin->setPassword(
             $this->passwordHasher->hashPassword($admin, 'password')
         );
-        $admin->setBalance(99999.99);
+        $admin->setBalance(0.00);
         $manager->persist($admin);
 
         $manager->flush();
+
+        // Создание курсов
+        $coursesData = [
+            [
+                "code" => "python-junior",
+                "type" => CourseType::RENT,
+                "price" => 299.99
+            ],
+            [
+                "code" => "introduction-to-neural-networks",
+                "type" => CourseType::RENT,
+                "price" => 500.00
+            ],
+            [
+                "code" => "industrial-web-development",
+                "type" => CourseType::PAY,
+                "price" => 850.00
+            ],
+            [
+                "code" => "basics-of-computer-vision",
+                "type" => CourseType::PAY,
+                "price" => 350.99
+            ],
+            [
+                "code" => "ros2-course",
+                "type" => CourseType::FREE,
+                "price" => 0.00
+            ],
+        ];
+        foreach ($coursesData as $course) {
+            $billingCourse = new Course();
+            $billingCourse->setCode($course['code']);
+            $billingCourse->setType($course['type']);
+            $billingCourse->setPrice($course['price']);
+            $manager->persist($billingCourse);
+        }
+        $manager->flush();
+
+        // Начисляем юзерам деньги на баланс
+        $this->paymentService->deposit($user, 1250.99);
+        $this->paymentService->deposit($admin, 99999.99);
     }
 }

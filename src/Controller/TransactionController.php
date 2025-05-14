@@ -2,9 +2,9 @@
 
 namespace App\Controller;
 
+use App\Enum\TransactionType;
 use App\Repository\TransactionRepository;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
-use Security;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -12,6 +12,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use OpenApi\Attributes as OA;
+use TypeError;
 
 #[Route('/api', name: 'app_api_')]
 #[OA\Tag(name: 'Transactions')]
@@ -145,15 +146,21 @@ final class TransactionController extends AbstractController
 
             $transactionType = $filter['type'] ?? null;
             $transactionCourseCode = $filter['course_code'] ?? null;
-            $transactionSkipExpired = $filter['skip_expired'] ?? null;
+            $transactionSkipExpired = $filter['skip_expired'] ?? 'false';
 
-            if ($transactionType && $transactionType != 'payment' && $transactionType != 'deposit') {
-                return new JsonResponse([
-                    'error' => 'Only "payment" or "deposit" types supported'
-                ], Response::HTTP_BAD_REQUEST);
+            if ($transactionType) {
+                try {
+                    $transactionType = TransactionType::getValueFromLabel($transactionType)->getValue();
+                } catch (TypeError) {
+                    return new JsonResponse([
+                        'error' => 'Only "payment" or "deposit" types supported'
+                    ], Response::HTTP_BAD_REQUEST);
+                }
             }
 
-            if ($transactionSkipExpired && $transactionSkipExpired !== 'true' && $transactionSkipExpired !== 'false') {
+            if ($transactionSkipExpired === 'true' || $transactionSkipExpired === 'false') {
+                $transactionSkipExpired = boolval($transactionSkipExpired);
+            } else {
                 return new JsonResponse([
                     'error' => '"skip_expired" must be a boolean type'
                 ], Response::HTTP_BAD_REQUEST);
@@ -161,7 +168,7 @@ final class TransactionController extends AbstractController
 
             // Фильтрация
             $filteredTransactions = $this->transactionRepository
-                ->getFiltered(
+                ->getFilteredTransactions(
                     $currentUsername,
                     $transactionType,
                     $transactionCourseCode,
@@ -184,6 +191,7 @@ final class TransactionController extends AbstractController
                 if ($transaction->getExpiredAt() != null) {
                     $item['expires_at'] = $transaction->getExpiredAt();
                 }
+                $response[] = $item;
             }
 
             return new JsonResponse(
