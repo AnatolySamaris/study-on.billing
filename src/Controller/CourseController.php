@@ -323,13 +323,6 @@ final class CourseController extends AbstractController
                 ], Response::HTTP_NOT_FOUND);
             }
 
-            if ($course->getType() == CourseType::FREE) {
-                return new JsonResponse([
-                    'success' => true,
-                    'course_type' => $course->getType()->getLabel(),
-                ], Response::HTTP_CREATED);
-            }
-
             try {
                 $response = [
                     'success' => true,
