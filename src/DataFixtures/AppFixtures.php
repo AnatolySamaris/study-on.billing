@@ -44,26 +44,31 @@ class AppFixtures extends Fixture
         // Создание курсов
         $coursesData = [
             [
+                "title" => "Python Junior",
                 "code" => "python-junior",
                 "type" => CourseType::RENT,
                 "price" => 299.99
             ],
             [
+                "title" => "Introduction to Neural Networks",
                 "code" => "introduction-to-neural-networks",
                 "type" => CourseType::RENT,
                 "price" => 500.00
             ],
             [
+                "title" => "Industrial WEB-development",
                 "code" => "industrial-web-development",
                 "type" => CourseType::PAY,
                 "price" => 850.00
             ],
             [
+                "title" => "Basics of Computer Vision",
                 "code" => "basics-of-computer-vision",
                 "type" => CourseType::PAY,
                 "price" => 350.99
             ],
             [
+                "title" => "ROS2 Course",
                 "code" => "ros2-course",
                 "type" => CourseType::FREE,
                 "price" => 0.00
@@ -71,6 +76,7 @@ class AppFixtures extends Fixture
         ];
         foreach ($coursesData as $course) {
             $billingCourse = new Course();
+            $billingCourse->setTitle($course['title']);
             $billingCourse->setCode($course['code']);
             $billingCourse->setType($course['type']);
             $billingCourse->setPrice($course['price']);

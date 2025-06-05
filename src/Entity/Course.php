@@ -40,6 +40,14 @@ class Course
     #[ORM\OneToMany(targetEntity: Transaction::class, mappedBy: 'course')]
     private Collection $transactions;
 
+    #[ORM\Column(length: 255)]
+    #[Assert\NotBlank(message: 'Course title is mandatory')]
+    #[Assert\Length(
+        max: 255,
+        maxMessage: 'Max title length must be {{ limit }} symbols'
+    )]
+    private ?string $title = null;
+
     public function __construct()
     {
         $this->transactions = new ArrayCollection();
@@ -112,6 +120,18 @@ class Course
                 $transaction->setCourse(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getTitle(): ?string
+    {
+        return $this->title;
+    }
+
+    public function setTitle(string $title): static
+    {
+        $this->title = $title;
 
         return $this;
     }
