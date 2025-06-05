@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Dto\CourseDto;
 use App\Entity\Course;
 use App\Entity\User;
 use App\Enum\CourseType;
@@ -12,11 +13,15 @@ use Doctrine\ORM\EntityManagerInterface;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Component\Serializer\SerializerInterface;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 use OpenApi\Attributes as OA;
+use Nelmio\ApiDocBundle\Attribute\Model;
 
 #[Route('/api', name: 'app_api_')]
 #[OA\Tag(name: 'Courses')]
@@ -24,7 +29,9 @@ final class CourseController extends AbstractController
 {
     public function __construct(
         private EntityManagerInterface $entityManager,
-        private CourseRepository $courseRepository
+        private CourseRepository $courseRepository,
+        private SerializerInterface $serializer,
+        private ValidatorInterface $validator,
     ) {
     }
 
@@ -344,6 +351,216 @@ final class CourseController extends AbstractController
                     'error' => 'Not enough money for this operation'
                 ], Response::HTTP_NOT_ACCEPTABLE);
             }
+        } catch (\Exception $e) {
+            return new JsonResponse([
+                'error' => $e->getMessage()
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    #[Route(path: '/v1/courses/new', name: 'courses_new', methods: ['POST'])]
+    #[IsGranted("ROLE_SUPER_ADMIN")]
+    #[OA\Post(
+        path: '/api/v1/courses/new',
+        summary: 'Create course',
+        description: 'Creates course on Billing from json',
+        security: [["bearerAuth" => []]],
+        requestBody: new OA\RequestBody(
+            required: true,
+            description: 'New course data',
+            content: new OA\JsonContent(ref: new Model(type: CourseDto::class))
+        )
+    )]
+    #[OA\Response(
+        response: 201,
+        description: 'Course created successfully',
+        content: new OA\JsonContent(
+            properties: [
+                new OA\Property(
+                    property: 'success',
+                    type: 'bool',
+                    example: 'true'
+                ),
+            ]
+        )
+    )]
+    #[OA\Response(
+        response: 400,
+        description: 'Invalid course data',
+        content: new OA\JsonContent(
+            properties: [
+                new OA\Property(
+                    property: 'error',
+                    type: 'string',
+                    example: 'Course with given code already exists'
+                )
+            ]
+        )
+    )]
+    #[OA\Response(
+        response: 500,
+        description: "Internal server error",
+        content: new OA\JsonContent(
+            properties: [
+                new OA\Property(
+                    property: "error",
+                    type: "string",
+                    example: "Error message"
+                ),
+            ]
+        )
+    )]
+    public function new(Request $request): JsonResponse
+    {
+        try {
+            $courseDto = $this->serializer->deserialize(
+                $request->getContent(),
+                CourseDto::class,
+                'json'
+            );
+
+            $errors = $this->validator->validate($courseDto);
+            if (count($errors) > 0) {
+                $errorsString = "";
+                foreach ($errors as $error) {
+                    $errorsString = $error->getPropertyPath() . ": " . $error->getMessage() . ";";
+                }
+                return new JsonResponse([
+                    'error' => $errorsString
+                ], Response::HTTP_BAD_REQUEST);
+            }
+
+            $existingCourse = $this->entityManager->getRepository(Course::class)
+                ->findOneBy(['code' => $courseDto->code]);
+
+            if ($existingCourse) {
+                return new JsonResponse([
+                    'error' => "Course with given code already exists"
+                ], Response::HTTP_BAD_REQUEST);
+            }
+
+            $course = new Course();
+            $course
+                ->setTitle($courseDto->title)
+                ->setType(CourseType::from($courseDto->type))
+                ->setCode($courseDto->code)
+                ->setPrice($courseDto->price)
+            ;
+            $this->entityManager->persist($course);
+            $this->entityManager->flush();
+
+            return new JsonResponse([
+                'success' => true
+            ], Response::HTTP_CREATED);
+        } catch (\Exception $e) {
+            return new JsonResponse([
+                'error' => $e->getMessage()
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    #[Route(path: '/v1/courses/{code}', name: 'courses_edit', methods: ['POST'])]
+    #[IsGranted("ROLE_SUPER_ADMIN")]
+    #[OA\Post(
+        path: '/api/v1/courses/{code}',
+        summary: 'Edit course',
+        description: 'Edits course on Billing througth json',
+        security: [["bearerAuth" => []]],
+        requestBody: new OA\RequestBody(
+            required: true,
+            description: 'Course data',
+            content: new OA\JsonContent(ref: new Model(type: CourseDto::class))
+        )
+    )]
+    #[OA\Response(
+        response: 200,
+        description: 'Course edited successfully',
+        content: new OA\JsonContent(
+            properties: [
+                new OA\Property(
+                    property: 'success',
+                    type: 'bool',
+                    example: 'true'
+                ),
+            ]
+        )
+    )]
+    #[OA\Response(
+        response: 400,
+        description: 'Invalid course data',
+        content: new OA\JsonContent(
+            properties: [
+                new OA\Property(
+                    property: 'error',
+                    type: 'string',
+                    example: 'Course with given code does not exist'
+                )
+            ]
+        )
+    )]
+    #[OA\Response(
+        response: 500,
+        description: "Internal server error",
+        content: new OA\JsonContent(
+            properties: [
+                new OA\Property(
+                    property: "error",
+                    type: "string",
+                    example: "Error message"
+                ),
+            ]
+        )
+    )]
+    public function edit(string $code, Request $request): JsonResponse
+    {
+        try {
+            $courseDto = $this->serializer->deserialize(
+                $request->getContent(),
+                CourseDto::class,
+                'json'
+            );
+
+            $errors = $this->validator->validate($courseDto);
+            if (count($errors) > 0) {
+                $errorsString = "";
+                foreach ($errors as $error) {
+                    $errorsString = $error->getPropertyPath() . ": " . $error->getMessage() . ";";
+                }
+                return new JsonResponse([
+                    'error' => $errorsString
+                ], Response::HTTP_BAD_REQUEST);
+            }
+
+            $course = $this->entityManager->getRepository(Course::class)
+                ->findOneBy(['code' => $code]);
+
+            if (!$course) {
+                return new JsonResponse([
+                    'error' => "Course with given code does not exist"
+                ], Response::HTTP_BAD_REQUEST);
+            }
+
+            $existingCourse = $this->entityManager->getRepository(Course::class)
+                ->findOneBy(['code' => $courseDto->code]);
+
+            if ($existingCourse) {
+                return new JsonResponse([
+                    'error' => "Course with given code already exists"
+                ], Response::HTTP_BAD_REQUEST);
+            }
+
+            $course
+                ->setTitle($courseDto->title)
+                ->setType(CourseType::from($courseDto->type))
+                ->setCode($courseDto->code)
+                ->setPrice($courseDto->price)
+            ;
+            $this->entityManager->persist($course);
+            $this->entityManager->flush();
+
+            return new JsonResponse([
+                'success' => true
+            ], Response::HTTP_OK);
         } catch (\Exception $e) {
             return new JsonResponse([
                 'error' => $e->getMessage()

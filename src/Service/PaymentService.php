@@ -31,8 +31,13 @@ class PaymentService
         $transaction->setDate($transactionTime);
         $transaction->setType(TransactionType::PAYMENT);
         $transaction->setCourse($course);
-        $transaction->setValue($course->getPrice());
         $transaction->setBillingUser($user);
+
+        if ($course->getType() == CourseType::FREE) {
+            $transaction->setValue(0);
+        } else {
+            $transaction->setValue($course->getPrice());
+        }
 
         if ($course->getType() == CourseType::RENT) {
             $transaction->setExpiredAt(
@@ -41,7 +46,7 @@ class PaymentService
         }
 
         $this->entityManager->wrapInTransaction(function () use ($transaction, $course, $user) {
-            $user->setBalance($user->getBalance() - $course->getPrice());
+            $user->setBalance($user->getBalance() - $transaction->getValue());
             $this->entityManager->persist($transaction);
             $this->entityManager->persist($user);
             $this->entityManager->flush();
