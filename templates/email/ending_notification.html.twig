@@ -1,0 +1,13 @@
+{% extends 'email.html.twig' %}
+
+{% block title %} Notice of the End of the Rental Period {% endblock %}
+
+{% block body %}
+    <p>Dear customer! You have courses whose rental period is coming to an end:</p>
+    
+    <ul>
+        {% for course in courses %}
+            <li>"{{ course.title }}" is valid until {{ course.expires_at|date('d.m.Y H:i') }}</li>
+        {% endfor %}
+    </ul>
+{% endblock %}

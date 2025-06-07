@@ -3,6 +3,7 @@
 namespace App\Repository;
 
 use App\Entity\Transaction;
+use App\Enum\TransactionType;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use DateTime;
@@ -51,28 +52,38 @@ class TransactionRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-//    /**
-//     * @return Transaction[] Returns an array of Transaction objects
-//     */
-//    public function findByExampleField($value): array
-//    {
-//        return $this->createQueryBuilder('t')
-//            ->andWhere('t.exampleField = :val')
-//            ->setParameter('val', $value)
-//            ->orderBy('t.id', 'ASC')
-//            ->setMaxResults(10)
-//            ->getQuery()
-//            ->getResult()
-//        ;
-//    }
+    public function findCoursesEndingSoon(): array
+    {
+        $start = new DateTime();
+        $end = (clone $start)->modify('+1 day');
+        
+        return $this->createQueryBuilder('t')
+            ->andWhere('t.type = :type')
+            ->andWhere('t.expiredAt BETWEEN :start AND :end')
+            ->setParameter('type', TransactionType::PAYMENT)
+            ->setParameter('start', $start)
+            ->setParameter('end', $end)
+            ->getQuery()
+            ->getResult();
+    }
 
-//    public function findOneBySomeField($value): ?Transaction
-//    {
-//        return $this->createQueryBuilder('t')
-//            ->andWhere('t.exampleField = :val')
-//            ->setParameter('val', $value)
-//            ->getQuery()
-//            ->getOneOrNullResult()
-//        ;
-//    }
+    public function getMonthlyReportData(\DateTimeInterface $startDate, \DateTimeInterface $endDate): array
+    {
+        return $this->createQueryBuilder('t')
+            ->select([
+                'c.title as course_title',
+                't.type',
+                'COUNT(t.id) as count',
+                'SUM(t.value) as amount',
+            ])
+            ->join('t.course', 'c')
+            ->where('t.date BETWEEN :start AND :end')
+            ->andWhere('t.type = :type')
+            ->setParameter('start', $startDate)
+            ->setParameter('end', $endDate)
+            ->setParameter('type', TransactionType::PAYMENT->value)
+            ->groupBy('c.id', 't.type')
+            ->getQuery()
+            ->getArrayResult();
+    }
 }

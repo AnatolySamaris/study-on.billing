@@ -1,0 +1,36 @@
+{% extends 'email.html.twig' %}
+
+{% block title %}Report on Paid Courses for the Period {{ startDate|date('d.m.Y') }} - {{ endDate|date('d.m.Y') }}{% endblock %}
+
+{% block body %}
+    <h2>Report on Paid Courses for the Period {{ startDate|date('d.m.Y') }} - {{ endDate|date('d.m.Y') }}</h2>
+    
+    <table border="1" cellpadding="5" cellspacing="0" width="100%">
+        <thead>
+            <tr>
+                <th>Course title</th>
+                <th>Course type</th>
+                <th>Rent/Payment amount</th>
+                <th>Total sum</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in reportData %}
+                <tr>
+                    <td>{{ item.course_title }}</td>
+                    <td>
+                        {% if item.type == constant('App\\Enum\\TransactionType::PAYMENT') %}
+                            Payment
+                        {% else %}
+                            Rent
+                        {% endif %}
+                    </td>
+                    <td>{{ item.count }}</td>
+                    <td>{{ item.amount|number_format(2, '.', ' ') }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <p><strong>Total: {{ reportData|reduce((sum, item) => sum + item.amount)|number_format(2, '.', ' ') }}</strong></p>
+{% endblock %}

@@ -9,6 +9,8 @@ use App\Enum\CourseType;
 use App\Enum\TransactionType;
 use App\Exception\NegativeDepositValue;
 use App\Exception\NotEnoughBalanceException;
+use DateTime;
+use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Security\Core\Exception\InsufficientAuthenticationException;
 
@@ -19,13 +21,17 @@ class PaymentService
     ) {
     }
 
-    public function payment(User $user, Course $course): Transaction
+    public function payment(User $user, Course $course, DateTimeImmutable $createdAt = null): Transaction
     {
         if ($user->getBalance() < $course->getPrice()) {
             throw new NotEnoughBalanceException();
         }
 
-        $transactionTime = (new \DateTimeImmutable());
+        if ($createdAt === null) {
+            $transactionTime = new DateTimeImmutable();
+        } else {
+            $transactionTime = $createdAt;
+        }
 
         $transaction = new Transaction();
         $transaction->setDate($transactionTime);
@@ -55,15 +61,21 @@ class PaymentService
         return $transaction;
     }
 
-    public function deposit(User $user, float $value): User
+    public function deposit(User $user, float $value, DateTimeImmutable $createdAt = null): User
     {
         if ($value < 0) {
             throw new NegativeDepositValue();
         }
 
-        $this->entityManager->wrapInTransaction(function () use ($user, $value) {
+        if ($createdAt === null) {
+            $transactionTime = new DateTimeImmutable();
+        } else {
+            $transactionTime = $createdAt;
+        }
+
+        $this->entityManager->wrapInTransaction(function () use ($user, $value, $transactionTime) {
             $transaction = new Transaction();
-            $transaction->setDate(new \DateTimeImmutable());
+            $transaction->setDate($transactionTime);
             $transaction->setType(TransactionType::DEPOSIT);
             $transaction->setValue($value);
             $transaction->setBillingUser($user);

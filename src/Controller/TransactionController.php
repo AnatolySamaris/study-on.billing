@@ -159,7 +159,7 @@ final class TransactionController extends AbstractController
             }
 
             if ($transactionSkipExpired === 'true' || $transactionSkipExpired === 'false') {
-                $transactionSkipExpired = boolval($transactionSkipExpired);
+                $transactionSkipExpired = true ? $transactionSkipExpired === 'true' : false;
             } else {
                 return new JsonResponse([
                     'error' => '"skip_expired" must be a boolean type'
