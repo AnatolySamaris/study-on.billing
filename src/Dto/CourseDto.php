@@ -24,6 +24,6 @@ class CourseDto
     )]
     public string $code;
 
-    #[Assert\GreaterThan(0)]
+    #[Assert\GreaterThanOrEqual(0)]
     public float|null $price = null;
 }

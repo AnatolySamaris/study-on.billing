@@ -543,7 +543,7 @@ final class CourseController extends AbstractController
             $existingCourse = $this->entityManager->getRepository(Course::class)
                 ->findOneBy(['code' => $courseDto->code]);
 
-            if ($existingCourse) {
+            if ($existingCourse && ($existingCourse->getCode() !== $course->getCode())) {
                 return new JsonResponse([
                     'error' => "Course with given code already exists"
                 ], Response::HTTP_BAD_REQUEST);
