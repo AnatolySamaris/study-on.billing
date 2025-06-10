@@ -567,4 +567,76 @@ final class CourseController extends AbstractController
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
+
+    #[Route(path: '/v1/courses/{code}/delete', name: 'courses_delete', methods: ['POST'])]
+    #[IsGranted("ROLE_SUPER_ADMIN")]
+    #[OA\Post(
+        path: '/api/v1/courses/{code}/delete',
+        summary: 'Delete course',
+        description: 'Deletes course on Billing',
+        security: [["bearerAuth" => []]],
+    )]
+    #[OA\Response(
+        response: 200,
+        description: 'Course deleted successfully',
+        content: new OA\JsonContent(
+            properties: [
+                new OA\Property(
+                    property: 'success',
+                    type: 'bool',
+                    example: 'true'
+                ),
+            ]
+        )
+    )]
+    #[OA\Response(
+        response: 400,
+        description: 'Invalid course data',
+        content: new OA\JsonContent(
+            properties: [
+                new OA\Property(
+                    property: 'error',
+                    type: 'string',
+                    example: 'Course with given code does not exist'
+                )
+            ]
+        )
+    )]
+    #[OA\Response(
+        response: 500,
+        description: "Internal server error",
+        content: new OA\JsonContent(
+            properties: [
+                new OA\Property(
+                    property: "error",
+                    type: "string",
+                    example: "Error message"
+                ),
+            ]
+        )
+    )]
+    public function delete(string $code): JsonResponse
+    {
+        try {
+            $course = $this->entityManager->getRepository(Course::class)
+                ->findOneBy(['code' => $code]);
+
+            if (!$course) {
+                return new JsonResponse([
+                    'error' => "Course with given code does not exist"
+                ], Response::HTTP_BAD_REQUEST);
+            }
+
+            $this->entityManager->remove($course);
+            $this->entityManager->flush();
+
+            return new JsonResponse([
+                'success' => true
+            ], Response::HTTP_OK);
+        } catch (\Exception $e) {
+            return new JsonResponse([
+                'error' => $e->getMessage()
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
 }
