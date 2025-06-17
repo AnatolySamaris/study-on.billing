@@ -19,12 +19,19 @@ jobs:
         run: |
           git config --global --add safe.directory /app
           cat << EOF > .env.local
-          DATABASE_URL="pgsql://pguser:pguser@postgres:5432/study_on_billing_test"
+          DATABASE_URL="pgsql://pguser:pguser@postgres:5432/study_on_billing"
           JWT_SECRET_KEY="%kernel.project_dir%/config/jwt/private.pem"
           JWT_PUBLIC_KEY="%kernel.project_dir%/config/jwt/public.pem"
-          JWT_PASSPHRASE="passphrase"
+          JWT_PASSPHRASE=passphrase
           EOF
           cat .env.local
+          cat << EOF > .env.test.local
+          DATABASE_URL=pgsql://pguser:pguser@postgres:5432/study_on_billing_test
+          JWT_SECRET_KEY=%kernel.project_dir%/config/jwt/private.pem
+          JWT_PUBLIC_KEY=%kernel.project_dir%/config/jwt/public.pem
+          JWT_PASSPHRASE=passphrase
+          EOF
+          cat .env.test.local
           composer install
       - name: Setting Docker
         run: |
@@ -37,6 +44,7 @@ jobs:
       - name: Setting JWT
         run: |
           php bin/console lexik:jwt:generate-keypair
+          php bin/console lexik:jwt:check-config
       - name: Setting test environment and DB
         run: |
           echo "DATABASE_URL=pgsql://pguser:pguser@postgres:5432/study_on_billing_test" >> .env.test.local
