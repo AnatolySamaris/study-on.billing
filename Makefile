@@ -21,6 +21,9 @@ migrate:
 fixtload:
 	@${CONSOLE} doctrine:fixtures:load
 
+fixtload-test:
+	@${CONSOLE} doctrine:fixtures:load --env=test
+
 phpunit:
 	@${PHP} bin/phpunit
 
